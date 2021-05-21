@@ -12,12 +12,14 @@ import (
 func InsertThread(thread models.Thread) (models.Thread, error) {
 	err := models.DBConn.QueryRow(
 		context.Background(),
-		"INSERT INTO threads (title, author, forum, message, slug) VALUES ($1, $2, $3, $4, $5) RETURNING *;",
+		"INSERT INTO threads (title, author, forum, message, slug, created) VALUES ($1, $2, $3, $4, $5, $6) RETURNING " +
+			"id, title, author, forum, message, slug, created;",
 		thread.Title,
 		thread.Author,
 		thread.Forum,
 		thread.Message,
 		thread.Slug,
+		thread.Created,
 	).Scan(
 		&thread.Id,
 		&thread.Title,
@@ -39,6 +41,7 @@ func InsertThread(thread models.Thread) (models.Thread, error) {
 					Message: "Can't find user\n",
 				}
 			}
+			return models.Thread{}, err
 		}
 	}
 	return thread, nil
@@ -94,7 +97,7 @@ func UpdateDBThreadById(id int, threadUpdate models.ThreadUpdate) (models.Thread
 	thread := models.Thread{}
 	err := models.DBConn.QueryRow(
 		context.Background(),
-		"UPDATE threads SET title=$1, message=$2 WHERE id=$3 RETURNING *",
+		"UPDATE threads SET title=COALESCE(NULLIF($1, ''), title), message=COALESCE(NULLIF($2, ''), message) WHERE id=$3 RETURNING *",
 		threadUpdate.Title,
 		threadUpdate.Message,
 		id,
@@ -120,7 +123,7 @@ func UpdateDBThreadBySlug(slug string, threadUpdate models.ThreadUpdate) (models
 	thread := models.Thread{}
 	err := models.DBConn.QueryRow(
 		context.Background(),
-		"UPDATE threads SET title=$1, message=$2 WHERE LOWER(slug)=LOWER($3) RETURNING *",
+		"UPDATE threads SET title=COALESCE(NULLIF($1, ''), title), message=COALESCE(NULLIF($2, ''), message) WHERE slug=$3 RETURNING *",
 		threadUpdate.Title,
 		threadUpdate.Message,
 		slug,
@@ -256,7 +259,7 @@ func GetThreadPostsById(id, limit, since int, sort string, desc bool) ([]models.
 		case "tree":
 			rows, err = models.DBConn.Query(
 				context.Background(),
-				"SELECT id, parent, author, message, is_edited, forum, thread, created FROM posts WHERE thread=$1 AND " +
+				"SELECT id, parent, author, message, is_edited, forum, thread, created FROM posts WHERE thread=$1 " +
 					"ORDER BY m_path LIMIT $2;",
 				id,
 				limit,
@@ -298,28 +301,12 @@ func GetThreadPostsById(id, limit, since int, sort string, desc bool) ([]models.
 	return posts, nil
 }
 
-func GetThreadPostsBySlug(slug string, limit, since int, sort string, desc bool) ([]models.Post, error) {
-	var id int
-	err := models.DBConn.QueryRow(
-		context.Background(),
-		"SELECT id FROM threads WHERE LOWER(slug)=LOWER($1) LIMIT 1;",
-		slug,
-	).Scan(
-		&id,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return GetThreadPostsById(id, limit, since, sort, desc)
-}
-
-
 func InsertVote(id int, newVote models.Vote) error {
 	vote := models.Vote{}
 	var exists bool
 	err := models.DBConn.QueryRow(
 		context.Background(),
-		"SELECT EXISTS(SELECT * FROM votes WHERE LOWER(nickname)=LOWER($1) AND thread=$2 LIMIT 1);",
+		"SELECT EXISTS(SELECT * FROM votes WHERE nickname=$1 AND thread=$2 LIMIT 1);",
 		newVote.Nickname,
 		id,
 	).Scan(
@@ -332,7 +319,7 @@ func InsertVote(id int, newVote models.Vote) error {
 	if exists {
 		err = models.DBConn.QueryRow(
 			context.Background(),
-			"UPDATE votes SET voice=$1 WHERE LOWER(nickname)=LOWER($2) and thread=$3 RETURNING *;",
+			"UPDATE votes SET voice=$1 WHERE nickname=$2 and thread=$3 RETURNING *;",
 			newVote.Voice,
 			newVote.Nickname,
 			id,
@@ -372,7 +359,7 @@ func GetThreadsForumBySlug(slug string, limit int, since time.Time, desc bool, s
 		rows, err = models.DBConn.Query(
 			context.Background(),
 			"SELECT * FROM threads " +
-				"WHERE LOWER(forum)=LOWER($1) AND created <= $2 " +
+				"WHERE forum=$1 AND created <= $2 " +
 				"ORDER BY created DESC " +
 				"LIMIT $3;",
 			slug,
@@ -384,7 +371,7 @@ func GetThreadsForumBySlug(slug string, limit int, since time.Time, desc bool, s
 		rows, err = models.DBConn.Query(
 			context.Background(),
 			"SELECT * FROM threads " +
-				"WHERE LOWER(forum)=LOWER($1) AND created >= $2 " +
+				"WHERE forum=$1 AND created >= $2 " +
 				"ORDER BY created " +
 				"LIMIT $3;",
 			slug,
@@ -395,7 +382,7 @@ func GetThreadsForumBySlug(slug string, limit int, since time.Time, desc bool, s
 		rows, err = models.DBConn.Query(
 			context.Background(),
 			"SELECT * FROM threads " +
-				"WHERE LOWER(forum)=LOWER($1) " +
+				"WHERE forum=$1 " +
 				"ORDER BY created DESC " +
 				"LIMIT $2;",
 			slug,
@@ -406,7 +393,7 @@ func GetThreadsForumBySlug(slug string, limit int, since time.Time, desc bool, s
 		rows, err = models.DBConn.Query(
 			context.Background(),
 			"SELECT * FROM threads " +
-				"WHERE LOWER(forum)=LOWER($1) " +
+				"WHERE forum=$1 " +
 				"ORDER BY created " +
 				"LIMIT $2;",
 			slug,

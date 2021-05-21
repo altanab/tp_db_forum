@@ -11,31 +11,33 @@ import (
 
 
 func CreateThread(c echo.Context) error{
-	slug := c.Param("slug")
+	forum, err := SelectForumBySlug(c.Param("slug"))
+	if err != nil {
+		return c.JSON(http.StatusNotFound, err)
+	}
 
 	newThread := models.Thread{}
 
 	defer c.Request().Body.Close()
-	err := json.NewDecoder(c.Request().Body).Decode(&newThread)
+	err = json.NewDecoder(c.Request().Body).Decode(&newThread)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	newThread.Forum = slug
+	newThread.Forum = forum.Slug
+
+	user, err := SelectUserByNickname(newThread.Author)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, err)
+	}
+	newThread.Author = user.Nickname
 
 	thread, err := InsertThread(newThread)
 	if err != nil {
-		switch err.(type) {
-		case models.UserIDError:
+		thread, err = SelectThreadBySlug(newThread.Slug.String)
+		if err != nil {
 			return c.JSON(http.StatusNotFound, err)
-		case models.AlreadyExists:
-			thread, err = SelectThreadBySlug(newThread.Slug)
-			if err != nil {
-				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-			}
-			return c.JSON(http.StatusConflict, thread)
-		default:
-			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
+		return c.JSON(http.StatusConflict, thread)
 	}
 	return c.JSON(http.StatusCreated, thread)
 }
@@ -87,6 +89,21 @@ func UpdateThread(c echo.Context) error{
 }
 
 func GetThreadPosts(c echo.Context) error{
+	var thread models.Thread
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		thread, err = SelectThreadBySlug(c.Param("id"))
+	} else {
+		thread, err = SelectThreadById(id)
+	}
+	if err != nil {
+		return c.JSON(
+			http.StatusNotFound,
+			models.UserIDError{
+				Message: "Thread not found\n",
+			},
+		)
+	}
 	limit, err := strconv.Atoi(c.QueryParam("limit"))
 	if err != nil {
 		limit = 100
@@ -111,12 +128,7 @@ func GetThreadPosts(c echo.Context) error{
 	}
 
 	var posts []models.Post
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		posts, err = GetThreadPostsBySlug(c.Param("id"), limit, since, sort, desc)
-	} else {
-		posts, err = GetThreadPostsById(id, limit, since, sort, desc)
-	}
+	posts, err = GetThreadPostsById(thread.Id, limit, since, sort, desc)
 	if err != nil {
 		return c.JSON(
 			http.StatusNotFound,
@@ -160,6 +172,7 @@ func VoteThread(c echo.Context) error{
 			},
 		)
 	}
+
 	err = InsertVote(thread.Id, vote)
 	if err != nil {
 		return c.JSON(

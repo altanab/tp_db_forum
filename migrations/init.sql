@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS Threads (
     forum CITEXT NOT NULL REFERENCES Forums (slug),
     message TEXT NOT NULL,
     votes INTEGER DEFAULT 0,
-    slug CITEXT UNIQUE NOT NULL,
+    slug CITEXT UNIQUE,
     created TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

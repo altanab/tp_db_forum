@@ -9,6 +9,7 @@ FROM ubuntu:20.04
 RUN apt-get -y update && apt-get install -y tzdata
 
 ENV PGVER 12
+
 RUN apt-get update -y && apt-get install -y postgresql postgresql-contrib
 
 USER postgres

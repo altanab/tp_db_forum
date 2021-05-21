@@ -27,6 +27,10 @@ type NullInt struct {
 	sql.NullInt64
 }
 
+type NullString struct {
+	sql.NullString
+}
+
 type User struct {
 	Nickname string `json:"nickname"`
 	Fullname string `json:"fullname"`
@@ -43,14 +47,14 @@ type Forum struct {
 }
 
 type Thread struct {
-	Id int `json:"id"`
-	Title string `json:"title"`
-	Author string `json:"author"`
-	Forum string `json:"forum"`
-	Message string `json:"message"`
-	Votes int `json:"votes"`
-	Slug string `json:"slug"`
-	Created time.Time `json:"created"`
+	Author  string         `json:"author"`
+	Created time.Time      `json:"created"`
+	Forum   string         `json:"forum"`
+	Id      int            `json:"id"`
+	Message string         `json:"message"`
+	Slug    NullString      `json:"slug"`
+	Title   string         `json:"title"`
+	Votes   int            `json:"votes"`
 }
 
 
@@ -97,7 +101,7 @@ type Status struct {
 
 var DBConn *pgxpool.Pool
 
-func (ns *NullInt) MarshalJSON() ([]byte, error) {
+func (ns NullInt) MarshalJSON() ([]byte, error) {
 	return json.Marshal(ns.Int64)
 }
 
@@ -109,6 +113,27 @@ func (ns *NullInt) UnmarshalJSON(data []byte) error {
 	if *b != 0 {
 		ns.Valid = true
 		ns.Int64 = *b
+	} else {
+		ns.Valid = false
+	}
+	return nil
+}
+
+func (ns NullString) MarshalJSON() ([]byte, error) {
+	if ns.Valid {
+		return json.Marshal(ns.String)
+	}
+	return json.Marshal("")
+}
+
+func (ns *NullString) UnmarshalJSON(data []byte) error {
+	var b *string
+	if err := json.Unmarshal(data, &b); err != nil {
+		return err
+	}
+	if b != nil {
+		ns.Valid = true
+		ns.String = *b
 	} else {
 		ns.Valid = false
 	}

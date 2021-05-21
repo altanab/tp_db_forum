@@ -33,7 +33,7 @@ func GetPostDetails(c echo.Context) error{
 					Message: "Can't find user\n",
 				})
 			}
-			postDetails["user"] = user
+			postDetails["author"] = user
 		case "thread":
 			thread, err := SelectThreadById(post.Thread)
 			if err != nil {
@@ -106,14 +106,23 @@ func CreatePost(c echo.Context) error{
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
+	if len(posts) == 0 {
+		return c.JSON(http.StatusCreated, posts)
+	}
+
 	posts, err = InsertPosts(posts, thread)
 	if err != nil {
-		return c.JSON(
-			http.StatusConflict,
-			models.UserIDError{
-				Message: "Can't find parent\n",
-			},
-		)
+		switch err.(type) {
+		case models.UserIDError:
+			return c.JSON(http.StatusNotFound, err)
+		default:
+			return c.JSON(
+				http.StatusConflict,
+				models.UserIDError{
+					Message: "Can't find parent\n",
+				},
+			)
+		}
 	}
 	return c.JSON(http.StatusCreated, posts)
 }

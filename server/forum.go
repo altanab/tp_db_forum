@@ -16,20 +16,18 @@ func CreateForum(c echo.Context) error{
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
+	user, err := SelectUserByNickname(newForum.User)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, err)
+	}
+	newForum.User = user.Nickname
 	forum, err := InsertForum(newForum)
 	if err != nil {
-		switch err.(type) {
-		case models.UserIDError:
-			return c.JSON(http.StatusNotFound, err)
-		case models.AlreadyExists:
-			forum, err := SelectForumBySlug(newForum.Slug)
-			if err != nil {
+		forum, err := SelectForumBySlug(newForum.Slug)
+		if err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 			}
-			return c.JSON(http.StatusConflict, forum)
-		default:
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-		}
+		return c.JSON(http.StatusConflict, forum)
 	}
 	return c.JSON(http.StatusCreated, forum)
 }

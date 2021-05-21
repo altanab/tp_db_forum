@@ -3,6 +3,7 @@ package server
 import (
 	"db_forum/models"
 	"fmt"
+	"github.com/jackc/pgconn"
 	"strings"
 	"context"
 )
@@ -28,6 +29,13 @@ func InsertPosts(posts []models.Post, thread models.Thread) ([]models.Post, erro
 		values...,
 		)
 	if err != nil {
+		if pgerr, ok := err.(*pgconn.PgError); ok {
+			if pgerr.ConstraintName == "posts_author_fkey" {
+				return nil, models.UserIDError{
+					Message: "user doesn't exists",
+				}
+			}
+		}
 		return nil, err
 	}
 
@@ -50,6 +58,18 @@ func InsertPosts(posts []models.Post, thread models.Thread) ([]models.Post, erro
 		}
 		insertedPosts = append(insertedPosts, post)
 	}
+
+	if err = rows.Err(); err != nil {
+		if pgerr, ok := err.(*pgconn.PgError); ok {
+			if pgerr.ConstraintName == "posts_author_fkey" {
+				return nil, models.UserIDError{
+					Message: "user doesn't exists",
+				}
+			}
+		}
+		return nil, err
+	}
+
 	return insertedPosts, nil
 
 }
@@ -80,7 +100,7 @@ func UpdatePostById(postUpdate models.PostUpdate) (models.Post, error)  {
 	var post models.Post
 	err := models.DBConn.QueryRow(
 		context.Background(),
-		"UPDATE posts SET message=$1, is_edited=TRUE WHERE id=$2 RETURNING id, parent, author, message, is_edited, forum, thread, created",
+		"UPDATE posts SET message=COALESCE(NULLIF($1, ''), message), is_edited=CASE WHEN $1='' OR message=$1 THEN FALSE ELSE TRUE END WHERE id=$2 RETURNING id, parent, author, message, is_edited, forum, thread, created",
 		postUpdate.Message,
 		postUpdate.Id,
 	).Scan(
