@@ -51,15 +51,6 @@ CREATE TABLE IF NOT EXISTS Forum_users (
     UNIQUE (forum_user, forum)
 );
 
-CREATE OR REPLACE FUNCTION count_forum_posts()
-    RETURNS TRIGGER
-    AS $count_forum_posts$
-BEGIN
-    UPDATE forums SET posts=(posts+1) WHERE LOWER(slug)=LOWER(NEW.forum);
-    RETURN NEW;
-END;
-$count_forum_posts$ LANGUAGE plpgsql;
-
 CREATE OR REPLACE FUNCTION count_forum_threads()
     RETURNS TRIGGER
     AS $count_forum_threads$
@@ -117,6 +108,7 @@ BEGIN
         END IF;
         NEW.m_path := NEW.m_path || parent_path || new.id;
     END IF;
+    UPDATE forums SET posts=(posts+1) WHERE LOWER(slug)=LOWER(NEW.forum);
     RETURN NEW;
 END;
 $update_m_path$ LANGUAGE plpgsql;
@@ -145,12 +137,6 @@ CREATE TRIGGER new_post
     ON posts
     FOR EACH ROW
     EXECUTE PROCEDURE update_forum_users();
-
-CREATE TRIGGER add_posts
-    AFTER INSERT
-    ON posts
-    FOR EACH ROW
-    EXECUTE PROCEDURE count_forum_posts();
 
 CREATE TRIGGER add_thread
     AFTER INSERT
