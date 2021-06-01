@@ -33,7 +33,7 @@ func SelectUsers(nickname, email string) ([]models.User, error) {
 	users := make([]models.User, 0, 0)
 	rows, err := models.DBConn.Query(
 		context.Background(),
-		"SELECT * FROM users WHERE nickname=$1 OR email=$2 LIMIT 2;",
+		"SELECT * FROM users WHERE LOWER(nickname)=LOWER($1) OR LOWER(email)=LOWER($2) LIMIT 2;",
 		nickname,
 		email,
 	)
@@ -83,7 +83,7 @@ func UpdateDBUser(userUpdate models.User) (models.User, error) {
 	user := models.User{}
 	err := models.DBConn.QueryRow(
 		context.Background(),
-		"UPDATE users SET fullname=COALESCE(NULLIF($1, ''), fullname), about=COALESCE(NULLIF($2, ''), about), email=COALESCE(NULLIF($3, ''), email) WHERE nickname=$4 RETURNING *",
+		"UPDATE users SET fullname=COALESCE(NULLIF($1, ''), fullname), about=COALESCE(NULLIF($2, ''), about), email=COALESCE(NULLIF($3, ''), email) WHERE LOWER(nickname)=LOWER($4) RETURNING *",
 		userUpdate.Fullname,
 		userUpdate.About,
 		userUpdate.Email,
@@ -123,8 +123,8 @@ func GetUsersForumBySlug(slug string, limit int, since string, desc bool) ([]mod
 			rows, err = models.DBConn.Query(
 				context.Background(),
 				"SELECT u.nickname, u.fullname, u.email, u.about FROM forum_users "+
-					"AS f JOIN users AS u ON f.forum_user=u.nickname "+
-					"WHERE f.forum=$1 AND u.nickname < $2 "+
+					"AS f JOIN users AS u ON LOWER(f.forum_user)=LOWER(u.nickname) "+
+					"WHERE LOWER(f.forum)=LOWER($1) AND LOWER(u.nickname) < LOWER($2) "+
 					"ORDER BY u.nickname DESC "+
 					"LIMIT $3;",
 				slug,
@@ -135,8 +135,8 @@ func GetUsersForumBySlug(slug string, limit int, since string, desc bool) ([]mod
 			rows, err = models.DBConn.Query(
 				context.Background(),
 				"SELECT u.nickname, u.fullname, u.email, u.about FROM forum_users "+
-					"AS f JOIN users AS u ON f.forum_user=u.nickname "+
-					"WHERE f.forum=$1 "+
+					"AS f JOIN users AS u ON LOWER(f.forum_user)=LOWER(u.nickname) "+
+					"WHERE LOWER(f.forum)=LOWER($1) "+
 					"ORDER BY u.nickname DESC "+
 					"LIMIT $2;",
 				slug,
@@ -148,8 +148,8 @@ func GetUsersForumBySlug(slug string, limit int, since string, desc bool) ([]mod
 		rows, err = models.DBConn.Query(
 			context.Background(),
 			"SELECT u.nickname, u.fullname, u.email, u.about FROM forum_users " +
-				"AS f JOIN users AS u ON f.forum_user=u.nickname " +
-				"WHERE f.forum=$1 AND u.nickname > $2 " +
+				"AS f JOIN users AS u ON LOWER(f.forum_user)=LOWER(u.nickname) " +
+				"WHERE LOWER(f.forum)=LOWER($1) AND LOWER(u.nickname) > LOWER($2) " +
 				"ORDER BY u.nickname " +
 				"LIMIT $3",
 			slug,

@@ -1,11 +1,10 @@
 package server
 
 import (
-	"db_forum/models"
 	"context"
+	"db_forum/models"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
-	"time"
 )
 
 
@@ -123,7 +122,7 @@ func UpdateDBThreadBySlug(slug string, threadUpdate models.ThreadUpdate) (models
 	thread := models.Thread{}
 	err := models.DBConn.QueryRow(
 		context.Background(),
-		"UPDATE threads SET title=COALESCE(NULLIF($1, ''), title), message=COALESCE(NULLIF($2, ''), message) WHERE slug=$3 RETURNING *",
+		"UPDATE threads SET title=COALESCE(NULLIF($1, ''), title), message=COALESCE(NULLIF($2, ''), message) WHERE LOWER(slug)=LOWER($3) RETURNING *",
 		threadUpdate.Title,
 		threadUpdate.Message,
 		slug,
@@ -306,7 +305,7 @@ func InsertVote(id int, newVote models.Vote) error {
 	var exists bool
 	err := models.DBConn.QueryRow(
 		context.Background(),
-		"SELECT EXISTS(SELECT * FROM votes WHERE nickname=$1 AND thread=$2 LIMIT 1);",
+		"SELECT EXISTS(SELECT * FROM votes WHERE LOWER(nickname)=LOWER($1) AND thread=$2 LIMIT 1);",
 		newVote.Nickname,
 		id,
 	).Scan(
@@ -319,7 +318,7 @@ func InsertVote(id int, newVote models.Vote) error {
 	if exists {
 		err = models.DBConn.QueryRow(
 			context.Background(),
-			"UPDATE votes SET voice=$1 WHERE nickname=$2 and thread=$3 RETURNING *;",
+			"UPDATE votes SET voice=$1 WHERE LOWER(nickname)=LOWER($2) and thread=$3 RETURNING *;",
 			newVote.Voice,
 			newVote.Nickname,
 			id,
@@ -346,7 +345,7 @@ func InsertVote(id int, newVote models.Vote) error {
 	return err
 }
 
-func GetThreadsForumBySlug(slug string, limit int, since time.Time, desc bool, sinceParam bool) ([]models.Thread, error) {
+func GetThreadsForumBySlug(slug string, limit int, since string, desc bool, sinceParam bool) ([]models.Thread, error) {
 	_, err := SelectForumBySlug(slug)
 	if err != nil {
 		return []models.Thread{}, err
@@ -359,7 +358,7 @@ func GetThreadsForumBySlug(slug string, limit int, since time.Time, desc bool, s
 		rows, err = models.DBConn.Query(
 			context.Background(),
 			"SELECT * FROM threads " +
-				"WHERE forum=$1 AND created <= $2 " +
+				"WHERE LOWER(forum)=LOWER($1) AND created <= $2 " +
 				"ORDER BY created DESC " +
 				"LIMIT $3;",
 			slug,
@@ -371,7 +370,7 @@ func GetThreadsForumBySlug(slug string, limit int, since time.Time, desc bool, s
 		rows, err = models.DBConn.Query(
 			context.Background(),
 			"SELECT * FROM threads " +
-				"WHERE forum=$1 AND created >= $2 " +
+				"WHERE LOWER(forum)=LOWER($1) AND created >= $2 " +
 				"ORDER BY created " +
 				"LIMIT $3;",
 			slug,
@@ -382,7 +381,7 @@ func GetThreadsForumBySlug(slug string, limit int, since time.Time, desc bool, s
 		rows, err = models.DBConn.Query(
 			context.Background(),
 			"SELECT * FROM threads " +
-				"WHERE forum=$1 " +
+				"WHERE LOWER(forum)=LOWER($1) " +
 				"ORDER BY created DESC " +
 				"LIMIT $2;",
 			slug,
@@ -393,7 +392,7 @@ func GetThreadsForumBySlug(slug string, limit int, since time.Time, desc bool, s
 		rows, err = models.DBConn.Query(
 			context.Background(),
 			"SELECT * FROM threads " +
-				"WHERE forum=$1 " +
+				"WHERE LOWER(forum)=LOWER($1)	 " +
 				"ORDER BY created " +
 				"LIMIT $2;",
 			slug,

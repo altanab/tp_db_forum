@@ -123,7 +123,7 @@ func (ns NullString) MarshalJSON() ([]byte, error) {
 	if ns.Valid {
 		return json.Marshal(ns.String)
 	}
-	return json.Marshal("")
+	return json.Marshal(nil)
 }
 
 func (ns *NullString) UnmarshalJSON(data []byte) error {

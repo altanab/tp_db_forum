@@ -6,7 +6,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
-	"time"
 )
 
 
@@ -193,23 +192,16 @@ func GetForumThreads(c echo.Context) error{
 	slug := c.Param("slug")
 	limit, err := strconv.Atoi(c.QueryParam("limit"))
 	if err != nil {
-		limit = 100
+		limit = 0
 	}
-	sinceParam := c.QueryParam("since")
-	var since time.Time
-	if sinceParam != "" {
-		since, err = time.Parse("2006-01-02T15:04:05Z", sinceParam)
-		if err != nil {
-			sinceParam = ""
-		}
-	}
+	since := c.QueryParam("since")
 
 	desc, err := strconv.ParseBool(c.QueryParam("desc"))
 	if err != nil {
 		desc = false
 	}
 
-	threads, err := GetThreadsForumBySlug(slug, limit, since, desc, sinceParam != "")
+	threads, err := GetThreadsForumBySlug(slug, limit, since, desc, since != "")
 	if err != nil {
 		return c.JSON(
 			http.StatusNotFound,
