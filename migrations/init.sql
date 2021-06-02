@@ -159,8 +159,8 @@ CREATE INDEX IF NOT EXISTS vote_index ON votes (LOWER(nickname), thread);
 
 CREATE UNIQUE INDEX forum_users_unique ON forum_users (forum_user, forum);
 
-CREATE INDEX IF NOT EXISTS posts_id_path1_index ON posts (id, (m_path[1]))
-CREATE INDEX IF NOT EXISTS posts_thread_id_index ON posts (thread, id)
-CREATE INDEX IF NOT EXISTS posts_thread_path_id_index ON posts(thread, m_path, id)
-CREATE INDEX IF NOT EXISTS posts_thread_index ON posts (thread)
-CREATE INDEX IF NOT EXISTS posts_path1_index ON posts (m_path[1])
+CREATE INDEX IF NOT EXISTS posts_id_path1_index ON posts (id, (m_path[1]));
+CREATE INDEX IF NOT EXISTS posts_thread_id_index ON posts (thread, id);
+CREATE INDEX IF NOT EXISTS posts_thread_path_id_index ON posts(thread, m_path, id);
+CREATE INDEX IF NOT EXISTS posts_thread_index ON posts (thread);
+CREATE INDEX IF NOT EXISTS posts_path1_index ON posts ((m_path[1]));
