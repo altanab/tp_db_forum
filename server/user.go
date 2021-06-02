@@ -22,7 +22,7 @@ func CreateUser(c echo.Context) error{
 	}
 
 	newUser.Nickname = nickname
-	user, err := InsertUser(newUser)
+	err = InsertUser(newUser)
 	if err != nil {
 		users, err := SelectUsers(nickname, newUser.Email)
 		if err != nil {
@@ -30,7 +30,7 @@ func CreateUser(c echo.Context) error{
 		}
 		return c.JSON(http.StatusConflict, users)
 	}
-	return c.JSON(http.StatusCreated, user)
+	return c.JSON(http.StatusCreated, newUser)
 }
 
 func GetUserProfile(c echo.Context) error{

@@ -150,13 +150,13 @@ CREATE TRIGGER path_update
     FOR EACH ROW
     EXECUTE PROCEDURE update_m_path();
 
-CREATE INDEX users_nickname_email_index ON users (LOWER(nickname), LOWER(email));
+CREATE INDEX IF NOT EXISTS users_nickname_email_index ON users (LOWER(nickname), LOWER(email));
 
-CREATE INDEX thread_slug_index ON threads (LOWER(slug));
-CREATE INDEX forum_threads_index ON threads (LOWER(forum), created);
+CREATE INDEX IF NOT EXISTS thread_slug_index ON threads (LOWER(slug));
+CREATE INDEX IF NOT EXISTS forum_threads_index ON threads (LOWER(forum), created);
 
-CREATE INDEX vote_index ON votes (LOWER(nickname), thread);
+CREATE INDEX IF NOT EXISTS vote_index ON votes (LOWER(nickname), thread);
 
-CREATE INDEX post_flat_index ON posts (thread, id);
-CREATE INDEX post_tree_index ON posts (thread, m_path, id);
-CREATE INDEX post_parent_tree_index ON posts (thread, id, (m_path[1]), parent);
+CREATE INDEX IF NOT EXISTS post_flat_index ON posts (thread, id);
+CREATE INDEX IF NOT EXISTS post_tree_index ON posts (thread, m_path, id);
+CREATE INDEX IF NOT EXISTS post_parent_tree_index ON posts (thread, id, (m_path[1]), parent);

@@ -8,25 +8,17 @@ import (
 )
 
 //TODO: scan null
-func InsertUser(user models.User) (models.User, error) {
-	err := models.DBConn.QueryRow(
+func InsertUser(user models.User) error {
+	_, err := models.DBConn.Exec(
 		context.Background(),
-		"INSERT INTO users (nickname, fullname, email, about) VALUES ($1, $2, $3, $4) RETURNING *;",
+		"INSERT INTO users (nickname, fullname, email, about) VALUES ($1, $2, $3, $4);",
 		user.Nickname,
 		user.Fullname,
 		user.Email,
 		user.About,
-		).Scan(
-			&user.Nickname,
-			&user.Fullname,
-			&user.Email,
-			&user.About,
-			)
+		)
 
-	if err != nil {
-		return models.User{}, err
-	}
-	return user, nil
+	return err
 }
 
 func SelectUsers(nickname, email string) ([]models.User, error) {
